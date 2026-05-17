@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Опрос студентов (общий)</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <span class="brand">
+        <span class="brand-icon">&#127891;</span>
+        Опросы колледжа
+      </span>
+      <div class="topbar-nav">
+        <a href="/student.html">К опросам</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <nav>
+        <ul class="sidebar-nav">
+          <li><a href="/"><span class="nav-icon">&#127968;</span> Главная</a></li>
+          <div class="sidebar-section">Студенты</div>
+          <li><a href="/survey-general.html" class="active"><span class="nav-icon">&#128221;</span> Общий опрос</a></li>
+          <li><a href="/survey-pps.html"><span class="nav-icon">&#11088;</span> Оценка ППС</a></li>
+          <div class="sidebar-section">Преподаватели</div>
+          <li><a href="/survey-teacher.html"><span class="nav-icon">&#128218;</span> Опрос преподавателей</a></li>
+        </ul>
+      </nav>
+    </aside>
+
+    <div class="main-content">
+      <main class="container">
+        <div class="breadcrumb">
+          <a href="/">Главная</a>
+          <span class="sep">/</span>
+          <a href="/student.html">Студенты</a>
+          <span class="sep">/</span>
+          <span>Общий опрос</span>
+        </div>
+
+        <h1>Опрос студентов (общий)</h1>
+        <p class="subtitle">Опрос анонимный. Сохраняется только название группы.</p>
+
+        <section id="step1" class="card">
+          <label for="group">Ваша группа</label>
+          <select id="group" required></select>
+          <div class="btn-row">
+            <button id="startBtn" class="btn" type="button">Перейти к опросу</button>
+          </div>
+        </section>
+
+        <form id="step2" class="hidden">
+          <div id="questions"></div>
+          <div id="alertBox"></div>
+          <div class="btn-row">
+            <button type="submit" class="btn">Отправить</button>
+          </div>
+        </form>
+      </main>
+    </div>
+  </div>
+
+  <script src="/js/groups.js"></script>
+  <script src="/js/survey-general.js"></script>
+</body>
+</html>

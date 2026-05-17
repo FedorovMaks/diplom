@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Анкета студента (оценка ППС)</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <span class="brand">
+        <span class="brand-icon">&#127891;</span>
+        Опросы колледжа
+      </span>
+      <div class="topbar-nav">
+        <a href="/student.html">К опросам</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <nav>
+        <ul class="sidebar-nav">
+          <li><a href="/"><span class="nav-icon">&#127968;</span> Главная</a></li>
+          <div class="sidebar-section">Студенты</div>
+          <li><a href="/survey-general.html"><span class="nav-icon">&#128221;</span> Общий опрос</a></li>
+          <li><a href="/survey-pps.html" class="active"><span class="nav-icon">&#11088;</span> Оценка ППС</a></li>
+          <div class="sidebar-section">Преподаватели</div>
+          <li><a href="/survey-teacher.html"><span class="nav-icon">&#128218;</span> Опрос преподавателей</a></li>
+        </ul>
+      </nav>
+    </aside>
+
+    <div class="main-content">
+      <main class="container">
+        <div class="breadcrumb">
+          <a href="/">Главная</a>
+          <span class="sep">/</span>
+          <a href="/student.html">Студенты</a>
+          <span class="sep">/</span>
+          <span>Оценка ППС</span>
+        </div>
+
+        <h1>Анкета студента (оценка ППС)</h1>
+        <p class="subtitle">Оцените каждого преподавателя Вашей группы по 12 характеристикам.</p>
+
+        <section id="step1" class="card">
+          <label for="group">Ваша группа</label>
+          <select id="group" required></select>
+          <div class="btn-row">
+            <button id="loadTeachersBtn" class="btn" type="button">Перейти к опросу</button>
+          </div>
+        </section>
+
+        <form id="step2" class="hidden">
+          <div class="info-banner" style="margin-top:8px">
+            Шкала оценки: <b>5</b> — полностью согласен, <b>4</b> — скорее согласен,
+            <b>3</b> — отчасти согласен/не согласен, <b>2</b> — скорее не согласен,
+            <b>1</b> — полностью не согласен.
+          </div>
+          <div id="teachers"></div>
+          <div id="alertBox"></div>
+          <div class="btn-row">
+            <button type="submit" class="btn">Отправить</button>
+          </div>
+        </form>
+      </main>
+    </div>
+  </div>
+
+  <script src="/js/groups.js"></script>
+  <script src="/js/survey-pps.js"></script>
+</body>
+</html>

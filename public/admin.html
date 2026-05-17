@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Администратор — Выгрузка результатов</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <span class="brand">
+        <span class="brand-icon">&#127891;</span>
+        Опросы колледжа
+      </span>
+      <div class="topbar-nav">
+        <a href="#" id="logoutLink">Выйти</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <nav>
+        <ul class="sidebar-nav">
+          <li><a href="/"><span class="nav-icon">&#127968;</span> Главная</a></li>
+          <div class="sidebar-section">Администратор</div>
+          <li><a href="/admin.html" class="active"><span class="nav-icon">&#128202;</span> Выгрузка</a></li>
+        </ul>
+      </nav>
+    </aside>
+
+    <div class="main-content">
+      <main class="container">
+        <div class="breadcrumb">
+          <a href="/">Главная</a>
+          <span class="sep">/</span>
+          <span>Администратор</span>
+        </div>
+
+        <h1>Выгрузка результатов</h1>
+        <p class="subtitle">Скачайте таблицы опросов в формате Microsoft Excel.</p>
+        <div id="authAlert"></div>
+        <div class="cards" id="cards" style="display:none">
+          <a class="card" href="/api/admin/export/general.xlsx">
+            <div class="card-icon green">&#128196;</div>
+            <div class="card-title">ОбщийОпросСтудентов.xlsx</div>
+            <div class="card-desc">Все ответы общего опроса студентов</div>
+          </a>
+          <a class="card" href="/api/admin/export/pps.xlsx">
+            <div class="card-icon blue">&#128196;</div>
+            <div class="card-title">ОценкаППС.xlsx</div>
+            <div class="card-desc">Анкеты студентов с оценками преподавателей</div>
+          </a>
+          <a class="card" href="/api/admin/export/teacher.xlsx">
+            <div class="card-icon orange">&#128196;</div>
+            <div class="card-title">ОпросПреподавателей.xlsx</div>
+            <div class="card-desc">Все ответы анонимного опроса преподавателей</div>
+          </a>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const authAlert = document.getElementById('authAlert');
+    const cards = document.getElementById('cards');
+
+    fetch('/api/admin/me').then((r) => r.json()).then((d) => {
+      if (d.authenticated) {
+        cards.style.display = '';
+      } else {
+        authAlert.innerHTML =
+          '<div class="alert alert-error">Сессия истекла. <a href="/admin-login.html">Войти заново</a>.</div>';
+      }
+    });
+
+    document.getElementById('logoutLink').addEventListener('click', async (e) => {
+      e.preventDefault();
+      await fetch('/api/admin/logout', { method: 'POST' });
+      window.location.href = '/admin-login.html';
+    });
+  </script>
+</body>
+</html>
