@@ -183,7 +183,6 @@ router.get('/export/pps.xlsx', requireAdmin, async (_req, res, next) => {
       ws.columns = [
         { header: '#', key: 'id', width: 6 },
         { header: 'Группа', key: 'group_name', width: 14 },
-        { header: 'ID преподавателя', key: 'teacher_id', width: 12 },
         { header: 'ФИО преподавателя', key: 'teacher_fio', width: 38 },
         ...PPS_CHARACTERISTICS.map((label, i) => ({
           header: `${i + 1}. ${label}`, key: `c${i + 1}`, width: 32,
@@ -195,7 +194,7 @@ router.get('/export/pps.xlsx', requireAdmin, async (_req, res, next) => {
       for (const r of rows) {
         const row = {
           id: r.id, group_name: r.group_name,
-          teacher_id: r.teacher_id, teacher_fio: r.teacher_fio,
+          teacher_fio: r.teacher_fio,
           submitted_at: r.submitted_at,
         };
         for (let i = 1; i <= 12; i++) row[`c${i}`] = decode(SCALE_5, r[`c${i}`]);

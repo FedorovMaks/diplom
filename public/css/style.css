@@ -487,6 +487,29 @@ textarea { resize: vertical; min-height: 100px; }
   justify-content: center;
 }
 
+/* ── PPS two-column selects ── */
+.pps-selects {
+  display: flex;
+  gap: 20px;
+}
+.pps-select-col {
+  flex: 1;
+}
+.pps-select-col label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+.pps-select-col select {
+  width: 100%;
+}
+@media (max-width: 600px) {
+  .pps-selects {
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+
 .hidden { display: none !important; }
 
 /* ── Welcome hero (index page) ── */

@@ -46,24 +46,32 @@
         <h1>Анкета студента (оценка ППС)</h1>
         <p class="subtitle">Оцените каждого преподавателя Вашей группы по 12 характеристикам.</p>
 
-        <section id="step1" class="card">
-          <label for="group">Ваша группа</label>
-          <select id="group" required></select>
-          <div class="btn-row">
-            <button id="loadTeachersBtn" class="btn" type="button">Перейти к опросу</button>
+        <section class="card">
+          <div class="pps-selects">
+            <div class="pps-select-col">
+              <label for="group">Ваша группа</label>
+              <select id="group" required></select>
+            </div>
+            <div class="pps-select-col">
+              <label for="teacherSelect">Преподаватель</label>
+              <select id="teacherSelect" disabled>
+                <option value="">— Сначала выберите группу —</option>
+              </select>
+            </div>
           </div>
+          <div id="evaluatedList" style="margin-top:12px"></div>
         </section>
 
-        <form id="step2" class="hidden">
+        <form id="surveyForm" class="hidden">
           <div class="info-banner" style="margin-top:8px">
             Шкала оценки: <b>5</b> — полностью согласен, <b>4</b> — скорее согласен,
             <b>3</b> — отчасти согласен/не согласен, <b>2</b> — скорее не согласен,
             <b>1</b> — полностью не согласен.
           </div>
-          <div id="teachers"></div>
+          <div id="teacherForm"></div>
           <div id="alertBox"></div>
           <div class="btn-row">
-            <button type="submit" class="btn">Отправить</button>
+            <button type="submit" class="btn">Отправить оценку</button>
           </div>
         </form>
       </main>
