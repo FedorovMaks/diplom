@@ -3,19 +3,38 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Администратор — Выгрузка результатов</title>
+  <title>Администратор</title>
   <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .admin-tabs { display:flex; gap:0; border-bottom:2px solid var(--border); margin-bottom:20px; }
+    .admin-tab { padding:10px 20px; cursor:pointer; font-weight:600; color:var(--text-muted); border-bottom:2px solid transparent; margin-bottom:-2px; transition:.2s; }
+    .admin-tab:hover { color:var(--text); }
+    .admin-tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+    .tab-content { display:none; }
+    .tab-content.active { display:block; }
+    .admin-table { width:100%; border-collapse:collapse; font-size:14px; }
+    .admin-table th, .admin-table td { padding:10px 12px; text-align:left; border-bottom:1px solid var(--border-light); }
+    .admin-table th { background:var(--accent-light); font-weight:600; position:sticky; top:0; }
+    .admin-table tr:hover { background:rgba(0,0,0,.02); }
+    .admin-form { display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; align-items:flex-end; }
+    .admin-form .field { display:flex; flex-direction:column; gap:4px; }
+    .admin-form .field label { font-size:12px; font-weight:600; color:var(--text-muted); }
+    .admin-form .field input, .admin-form .field select { padding:8px 10px; border:1px solid var(--border); border-radius:6px; font-size:14px; }
+    .btn-sm { padding:5px 12px; font-size:13px; border-radius:4px; cursor:pointer; border:none; }
+    .btn-add { background:var(--accent); color:#fff; }
+    .btn-add:hover { background:var(--accent-hover); }
+    .btn-del { background:none; color:var(--danger); border:1px solid var(--danger); }
+    .btn-del:hover { background:var(--danger); color:#fff; }
+    .teacher-groups-list { display:flex; flex-wrap:wrap; gap:4px; max-width:400px; }
+    .teacher-groups-list span { background:#f0f0f0; padding:2px 8px; border-radius:10px; font-size:12px; }
+    .scroll-table { max-height:500px; overflow-y:auto; border:1px solid var(--border-light); border-radius:8px; }
+  </style>
 </head>
 <body>
   <header class="topbar">
     <div class="topbar-inner">
-      <span class="brand">
-        <span class="brand-icon">&#127891;</span>
-        Опросы колледжа
-      </span>
-      <div class="topbar-nav">
-        <a href="#" id="logoutLink">Выйти</a>
-      </div>
+      <span class="brand"><span class="brand-icon">&#127891;</span> Опросы колледжа</span>
+      <div class="topbar-nav"><a href="#" id="logoutLink">Выйти</a></div>
     </div>
   </header>
 
@@ -25,7 +44,7 @@
         <ul class="sidebar-nav">
           <li><a href="/"><span class="nav-icon">&#127968;</span> Главная</a></li>
           <div class="sidebar-section">Администратор</div>
-          <li><a href="/admin.html" class="active"><span class="nav-icon">&#128202;</span> Выгрузка</a></li>
+          <li><a href="/admin.html" class="active"><span class="nav-icon">&#128202;</span> Панель управления</a></li>
         </ul>
       </nav>
     </aside>
@@ -33,30 +52,100 @@
     <div class="main-content">
       <main class="container">
         <div class="breadcrumb">
-          <a href="/">Главная</a>
-          <span class="sep">/</span>
-          <span>Администратор</span>
+          <a href="/">Главная</a><span class="sep">/</span><span>Администратор</span>
         </div>
-
-        <h1>Выгрузка результатов</h1>
-        <p class="subtitle">Скачайте таблицы опросов в формате Microsoft Excel.</p>
+        <h1>Панель администратора</h1>
         <div id="authAlert"></div>
-        <div class="cards" id="cards" style="display:none">
-          <a class="card" href="/api/admin/export/general.xlsx">
-            <div class="card-icon green">&#128196;</div>
-            <div class="card-title">ОбщийОпросСтудентов.xlsx</div>
-            <div class="card-desc">Все ответы общего опроса студентов</div>
-          </a>
-          <a class="card" href="/api/admin/export/pps.xlsx">
-            <div class="card-icon blue">&#128196;</div>
-            <div class="card-title">ОценкаППС.xlsx</div>
-            <div class="card-desc">Анкеты студентов с оценками преподавателей</div>
-          </a>
-          <a class="card" href="/api/admin/export/teacher.xlsx">
-            <div class="card-icon orange">&#128196;</div>
-            <div class="card-title">ОпросПреподавателей.xlsx</div>
-            <div class="card-desc">Все ответы анонимного опроса преподавателей</div>
-          </a>
+        <div id="adminContent" style="display:none">
+
+          <div class="admin-tabs">
+            <div class="admin-tab active" data-tab="export">Выгрузка Excel</div>
+            <div class="admin-tab" data-tab="teachers">Преподаватели</div>
+            <div class="admin-tab" data-tab="groups">Группы</div>
+          </div>
+
+          <!-- Выгрузка -->
+          <div class="tab-content active" id="tab-export">
+            <p class="subtitle">Скачайте таблицы опросов в формате Microsoft Excel.</p>
+            <div class="cards">
+              <a class="card" href="/api/admin/export/general.xlsx">
+                <div class="card-icon green">&#128196;</div>
+                <div class="card-title">ОбщийОпросСтудентов.xlsx</div>
+                <div class="card-desc">Все ответы общего опроса студентов</div>
+              </a>
+              <a class="card" href="/api/admin/export/pps.xlsx">
+                <div class="card-icon blue">&#128196;</div>
+                <div class="card-title">ОценкаППС.xlsx</div>
+                <div class="card-desc">Анкеты студентов с оценками преподавателей</div>
+              </a>
+              <a class="card" href="/api/admin/export/teacher.xlsx">
+                <div class="card-icon orange">&#128196;</div>
+                <div class="card-title">ОпросПреподавателей.xlsx</div>
+                <div class="card-desc">Все ответы анонимного опроса преподавателей</div>
+              </a>
+            </div>
+          </div>
+
+          <!-- Преподаватели -->
+          <div class="tab-content" id="tab-teachers">
+            <h2>Управление преподавателями</h2>
+            <div class="admin-form" id="addTeacherForm">
+              <div class="field">
+                <label>ФИО</label>
+                <input type="text" id="newFio" placeholder="Иванов Иван Иванович" style="width:280px">
+              </div>
+              <div class="field">
+                <label>Предметы (через запятую)</label>
+                <input type="text" id="newSubjects" placeholder="Математика, Физика" style="width:260px">
+              </div>
+              <div class="field">
+                <label>Группы (через запятую)</label>
+                <input type="text" id="newGroups" placeholder="ИСП-9-1, ИСП-9-2" style="width:260px">
+              </div>
+              <button class="btn-sm btn-add" id="addTeacherBtn">Добавить</button>
+            </div>
+            <div class="scroll-table">
+              <table class="admin-table">
+                <thead><tr><th>ID</th><th>ФИО</th><th>Предметы</th><th>Группы</th><th></th></tr></thead>
+                <tbody id="teachersTbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Группы -->
+          <div class="tab-content" id="tab-groups">
+            <h2>Управление группами (специальности)</h2>
+            <div class="admin-form" id="addGroupForm">
+              <div class="field">
+                <label>Код (напр. ИСП)</label>
+                <input type="text" id="newCode" placeholder="ИСП" style="width:100px">
+              </div>
+              <div class="field">
+                <label>Название специальности</label>
+                <input type="text" id="newSpecName" placeholder="Информационные системы" style="width:300px">
+              </div>
+              <div class="field">
+                <label>Курсы</label>
+                <input type="text" id="newCourses" placeholder="9, 11" style="width:80px" value="9, 11">
+              </div>
+              <div class="field">
+                <label>Подгрупп на 9 кл.</label>
+                <input type="number" id="newMax9" value="4" style="width:60px" min="1">
+              </div>
+              <div class="field">
+                <label>Подгрупп на 11 кл.</label>
+                <input type="number" id="newMax11" value="3" style="width:60px" min="1">
+              </div>
+              <button class="btn-sm btn-add" id="addGroupBtn">Добавить</button>
+            </div>
+            <div class="scroll-table">
+              <table class="admin-table">
+                <thead><tr><th>Код</th><th>Специальность</th><th>Курсы</th><th>Подгрупп (9 кл.)</th><th>Подгрупп (11 кл.)</th><th>Группы</th><th></th></tr></thead>
+                <tbody id="groupsTbody"></tbody>
+              </table>
+            </div>
+          </div>
+
         </div>
       </main>
     </div>
@@ -64,22 +153,119 @@
 
   <script>
     const authAlert = document.getElementById('authAlert');
-    const cards = document.getElementById('cards');
+    const adminContent = document.getElementById('adminContent');
 
-    fetch('/api/admin/me').then((r) => r.json()).then((d) => {
+    // === Auth check ===
+    fetch('/api/admin/me').then(r => r.json()).then(d => {
       if (d.authenticated) {
-        cards.style.display = '';
+        adminContent.style.display = '';
+        loadTeachers();
+        loadGroups();
       } else {
-        authAlert.innerHTML =
-          '<div class="alert alert-error">Сессия истекла. <a href="/admin-login.html">Войти заново</a>.</div>';
+        authAlert.innerHTML = '<div class="alert alert-error">Сессия истекла. <a href="/admin-login.html">Войти заново</a>.</div>';
       }
     });
 
-    document.getElementById('logoutLink').addEventListener('click', async (e) => {
+    document.getElementById('logoutLink').addEventListener('click', async e => {
       e.preventDefault();
       await fetch('/api/admin/logout', { method: 'POST' });
       window.location.href = '/admin-login.html';
     });
+
+    // === Tabs ===
+    document.querySelectorAll('.admin-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+      });
+    });
+
+    // === Teachers ===
+    const teachersTbody = document.getElementById('teachersTbody');
+
+    async function loadTeachers() {
+      const res = await fetch('/api/admin/teachers');
+      const list = await res.json();
+      teachersTbody.innerHTML = list.map(t => `<tr>
+        <td>${t.id}</td>
+        <td><b>${t.fio}</b></td>
+        <td>${(t.subjects || []).join(', ')}</td>
+        <td><div class="teacher-groups-list">${(t.groups || []).map(g => '<span>' + g + '</span>').join('')}</div></td>
+        <td><button class="btn-sm btn-del" onclick="deleteTeacher(${t.id})">Удалить</button></td>
+      </tr>`).join('');
+    }
+
+    document.getElementById('addTeacherBtn').addEventListener('click', async () => {
+      const fio = document.getElementById('newFio').value.trim();
+      if (!fio) { alert('Введите ФИО'); return; }
+      const subjects = document.getElementById('newSubjects').value.split(',').map(s => s.trim()).filter(Boolean);
+      const groups = document.getElementById('newGroups').value.split(',').map(s => s.trim()).filter(Boolean);
+      await fetch('/api/admin/teachers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fio, subjects, groups }),
+      });
+      document.getElementById('newFio').value = '';
+      document.getElementById('newSubjects').value = '';
+      document.getElementById('newGroups').value = '';
+      loadTeachers();
+    });
+
+    window.deleteTeacher = async function (id) {
+      if (!confirm('Удалить преподавателя?')) return;
+      await fetch('/api/admin/teachers/' + id, { method: 'DELETE' });
+      loadTeachers();
+    };
+
+    // === Groups ===
+    const groupsTbody = document.getElementById('groupsTbody');
+
+    async function loadGroups() {
+      const res = await fetch('/api/admin/groups');
+      const specs = await res.json();
+      groupsTbody.innerHTML = Object.entries(specs).map(([code, info]) => {
+        const groupNames = [];
+        for (const c of info.courses) {
+          const n = info.maxParallel[c] || 0;
+          for (let i = 1; i <= n; i++) groupNames.push(code + '-' + c + '-' + i);
+        }
+        return `<tr>
+          <td><b>${code}</b></td>
+          <td>${info.name}</td>
+          <td>${info.courses.join(', ')}</td>
+          <td>${info.maxParallel[9] || 0}</td>
+          <td>${info.maxParallel[11] || 0}</td>
+          <td><div class="teacher-groups-list">${groupNames.map(g => '<span>' + g + '</span>').join('')}</div></td>
+          <td><button class="btn-sm btn-del" onclick="deleteGroup('${code}')">Удалить</button></td>
+        </tr>`;
+      }).join('');
+    }
+
+    document.getElementById('addGroupBtn').addEventListener('click', async () => {
+      const code = document.getElementById('newCode').value.trim();
+      const name = document.getElementById('newSpecName').value.trim();
+      if (!code || !name) { alert('Введите код и название'); return; }
+      const courses = document.getElementById('newCourses').value.split(',').map(s => Number(s.trim())).filter(Boolean);
+      const maxParallel = {};
+      maxParallel[9] = Number(document.getElementById('newMax9').value) || 4;
+      maxParallel[11] = Number(document.getElementById('newMax11').value) || 3;
+      await fetch('/api/admin/groups', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, name, courses, maxParallel }),
+      });
+      document.getElementById('newCode').value = '';
+      document.getElementById('newSpecName').value = '';
+      loadGroups();
+    });
+
+    window.deleteGroup = async function (code) {
+      if (!confirm('Удалить специальность «' + code + '» и все её группы?')) return;
+      await fetch('/api/admin/groups/' + encodeURIComponent(code), { method: 'DELETE' });
+      loadGroups();
+    };
   </script>
 </body>
 </html>

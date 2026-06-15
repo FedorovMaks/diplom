@@ -1,7 +1,20 @@
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 const express = require('express');
 const ExcelJS = require('exceljs');
 const pool = require('../db/pool');
+
+const TEACHERS_PATH = path.join(__dirname, '..', 'data', 'teachers.json');
+const GROUPS_PATH = path.join(__dirname, '..', 'data', 'groups.js');
+const PUBLIC_GROUPS_PATH = path.join(__dirname, '..', 'public', 'js', 'groups.js');
+
+function loadTeachers() {
+  return JSON.parse(fs.readFileSync(TEACHERS_PATH, 'utf8'));
+}
+function saveTeachers(list) {
+  fs.writeFileSync(TEACHERS_PATH, JSON.stringify(list, null, 2), 'utf8');
+}
 
 const router = express.Router();
 
@@ -233,6 +246,109 @@ router.get('/export/teacher.xlsx', requireAdmin, async (_req, res, next) => {
       }
     });
   } catch (e) { next(e); }
+});
+
+// ---------- УПРАВЛЕНИЕ ПРЕПОДАВАТЕЛЯМИ ----------
+
+router.get('/teachers', requireAdmin, (_req, res) => {
+  res.json(loadTeachers());
+});
+
+router.post('/teachers', requireAdmin, (req, res) => {
+  const { fio, subjects, groups } = req.body || {};
+  if (!fio || typeof fio !== 'string' || !fio.trim()) {
+    return res.status(400).json({ error: 'ФИО обязательно' });
+  }
+  const list = loadTeachers();
+  const maxId = list.reduce((m, t) => Math.max(m, t.id), 0);
+  const teacher = {
+    id: maxId + 1,
+    fio: fio.trim(),
+    subjects: Array.isArray(subjects) ? subjects : [],
+    groups: Array.isArray(groups) ? groups : [],
+  };
+  list.push(teacher);
+  saveTeachers(list);
+  res.json(teacher);
+});
+
+router.put('/teachers/:id', requireAdmin, (req, res) => {
+  const id = Number(req.params.id);
+  const list = loadTeachers();
+  const idx = list.findIndex(t => t.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Не найден' });
+  const { fio, subjects, groups } = req.body || {};
+  if (fio) list[idx].fio = String(fio).trim();
+  if (Array.isArray(subjects)) list[idx].subjects = subjects;
+  if (Array.isArray(groups)) list[idx].groups = groups;
+  saveTeachers(list);
+  res.json(list[idx]);
+});
+
+router.delete('/teachers/:id', requireAdmin, (req, res) => {
+  const id = Number(req.params.id);
+  let list = loadTeachers();
+  const before = list.length;
+  list = list.filter(t => t.id !== id);
+  if (list.length === before) return res.status(404).json({ error: 'Не найден' });
+  saveTeachers(list);
+  res.json({ ok: true });
+});
+
+// ---------- УПРАВЛЕНИЕ ГРУППАМИ ----------
+
+function loadGroups() {
+  // Читаем из data/groups.js — парсим SPECIALTIES
+  const content = fs.readFileSync(GROUPS_PATH, 'utf8');
+  const match = content.match(/const SPECIALTIES\s*=\s*(\{[\s\S]*?\});/);
+  if (!match) return {};
+  return eval('(' + match[1] + ')');
+}
+
+function saveGroups(specialties) {
+  // Генерируем data/groups.js
+  const entries = Object.entries(specialties).map(([code, info]) => {
+    return `  '${code}': { name: '${info.name}', courses: [${info.courses.join(', ')}], maxParallel: { ${info.courses.map(c => `${c}: ${info.maxParallel[c]}`).join(', ')} } }`;
+  }).join(',\n');
+
+  const serverFile = `const SPECIALTIES = {\n${entries},\n};\n\nconst GROUPS = [];\nfor (const [code, info] of Object.entries(SPECIALTIES)) {\n  for (const base of info.courses) {\n    const n = info.maxParallel[base];\n    for (let i = 1; i <= n; i++) GROUPS.push(\`\${code}-\${base}-\${i}\`);\n  }\n}\n\nmodule.exports = { SPECIALTIES, GROUPS };\n`;
+  fs.writeFileSync(GROUPS_PATH, serverFile, 'utf8');
+
+  // Генерируем public/js/groups.js (с индивидуальными maxParallel для каждой специальности)
+  const specEntries = Object.entries(specialties).map(([code, info]) => {
+    const maxStr = info.courses.map(c => `${c}: ${info.maxParallel[c]}`).join(', ');
+    return `'${code}': { courses: [${info.courses.join(', ')}], max: { ${maxStr} } }`;
+  }).join(', ');
+
+  const clientFile = `window.GROUPS = (function () {\n  const specs = { ${specEntries} };\n  const out = [];\n  for (const [code, info] of Object.entries(specs)) {\n    for (const base of info.courses) {\n      for (let i = 1; i <= info.max[base]; i++) out.push(\`\${code}-\${base}-\${i}\`);\n    }\n  }\n  return out;\n})();\n\nwindow.fillGroupSelect = function (selectEl) {\n  const placeholder = document.createElement('option');\n  placeholder.value = '';\n  placeholder.textContent = '— Выберите группу —';\n  placeholder.disabled = true;\n  placeholder.selected = true;\n  selectEl.appendChild(placeholder);\n  for (const g of window.GROUPS) {\n    const opt = document.createElement('option');\n    opt.value = g;\n    opt.textContent = g;\n    selectEl.appendChild(opt);\n  }\n};\n`;
+  fs.writeFileSync(PUBLIC_GROUPS_PATH, clientFile, 'utf8');
+}
+
+router.get('/groups', requireAdmin, (_req, res) => {
+  const specialties = loadGroups();
+  res.json(specialties);
+});
+
+router.post('/groups', requireAdmin, (req, res) => {
+  const { code, name, courses, maxParallel } = req.body || {};
+  if (!code || !name) return res.status(400).json({ error: 'Код и название обязательны' });
+  const specialties = loadGroups();
+  specialties[code] = {
+    name,
+    courses: Array.isArray(courses) ? courses : [9, 11],
+    maxParallel: maxParallel || { 9: 4, 11: 3 },
+  };
+  saveGroups(specialties);
+  res.json({ ok: true });
+});
+
+router.delete('/groups/:code', requireAdmin, (req, res) => {
+  const code = req.params.code;
+  const specialties = loadGroups();
+  if (!specialties[code]) return res.status(404).json({ error: 'Не найдено' });
+  delete specialties[code];
+  saveGroups(specialties);
+  res.json({ ok: true });
 });
 
 module.exports = router;

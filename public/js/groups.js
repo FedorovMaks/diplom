@@ -1,10 +1,9 @@
 window.GROUPS = (function () {
-  const map = { 'ИСП': [9, 11], 'Ю': [9, 11], 'Д': [9, 11], 'Р': [9, 11], 'Э': [9, 11] };
-  const counts = { 9: 4, 11: 3 };
+  const specs = { 'ИСП': { courses: [9, 11], max: { 9: 4, 11: 3 } }, 'Ю': { courses: [9, 11], max: { 9: 4, 11: 3 } }, 'Д': { courses: [9, 11], max: { 9: 4, 11: 3 } }, 'Р': { courses: [9, 11], max: { 9: 4, 11: 3 } }, 'Э': { courses: [9, 11], max: { 9: 4, 11: 3 } } };
   const out = [];
-  for (const [code, bases] of Object.entries(map)) {
-    for (const base of bases) {
-      for (let i = 1; i <= counts[base]; i++) out.push(`${code}-${base}-${i}`);
+  for (const [code, info] of Object.entries(specs)) {
+    for (const base of info.courses) {
+      for (let i = 1; i <= info.max[base]; i++) out.push(`${code}-${base}-${i}`);
     }
   }
   return out;
