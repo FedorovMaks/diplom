@@ -28,6 +28,9 @@
     .teacher-groups-list { display:flex; flex-wrap:wrap; gap:4px; max-width:400px; }
     .teacher-groups-list span { background:#f0f0f0; padding:2px 8px; border-radius:10px; font-size:12px; }
     .scroll-table { max-height:500px; overflow-y:auto; border:1px solid var(--border-light); border-radius:8px; }
+    .export-item { display:flex; flex-direction:column; gap:8px; }
+    .btn-clear { width:100%; padding:9px; font-size:13px; font-weight:600; border-radius:6px; }
+    .btn-clear:disabled { opacity:.6; cursor:default; }
   </style>
 </head>
 <body>
@@ -68,21 +71,30 @@
           <div class="tab-content active" id="tab-export">
             <p class="subtitle">Скачайте таблицы опросов в формате Microsoft Excel.</p>
             <div class="cards">
-              <a class="card" href="/api/admin/export/general.xlsx">
-                <div class="card-icon green">&#128196;</div>
-                <div class="card-title">ОбщийОпросСтудентов.xlsx</div>
-                <div class="card-desc">Все ответы общего опроса студентов</div>
-              </a>
-              <a class="card" href="/api/admin/export/pps.xlsx">
-                <div class="card-icon blue">&#128196;</div>
-                <div class="card-title">ОценкаППС.xlsx</div>
-                <div class="card-desc">Анкеты студентов с оценками преподавателей</div>
-              </a>
-              <a class="card" href="/api/admin/export/teacher.xlsx">
-                <div class="card-icon orange">&#128196;</div>
-                <div class="card-title">ОпросПреподавателей.xlsx</div>
-                <div class="card-desc">Все ответы анонимного опроса преподавателей</div>
-              </a>
+              <div class="export-item">
+                <a class="card" href="/api/admin/export/general.xlsx">
+                  <div class="card-icon green">&#128196;</div>
+                  <div class="card-title">ОбщийОпросСтудентов.xlsx</div>
+                  <div class="card-desc">Все ответы общего опроса студентов</div>
+                </a>
+                <button class="btn-sm btn-del btn-clear" data-table="general" data-label="Общий опрос студентов">Очистить таблицу</button>
+              </div>
+              <div class="export-item">
+                <a class="card" href="/api/admin/export/pps.xlsx">
+                  <div class="card-icon blue">&#128196;</div>
+                  <div class="card-title">ОценкаППС.xlsx</div>
+                  <div class="card-desc">Анкеты студентов с оценками преподавателей</div>
+                </a>
+                <button class="btn-sm btn-del btn-clear" data-table="pps" data-label="Оценка ППС">Очистить таблицу</button>
+              </div>
+              <div class="export-item">
+                <a class="card" href="/api/admin/export/teacher.xlsx">
+                  <div class="card-icon orange">&#128196;</div>
+                  <div class="card-title">ОпросПреподавателей.xlsx</div>
+                  <div class="card-desc">Все ответы анонимного опроса преподавателей</div>
+                </a>
+                <button class="btn-sm btn-del btn-clear" data-table="teacher" data-label="Опрос преподавателей">Очистить таблицу</button>
+              </div>
             </div>
           </div>
 
@@ -266,6 +278,32 @@
       await fetch('/api/admin/groups/' + encodeURIComponent(code), { method: 'DELETE' });
       loadGroups();
     };
+
+    // === Очистка таблиц ===
+    document.querySelectorAll('.btn-clear').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const table = btn.dataset.table;
+        const label = btn.dataset.label;
+        if (!confirm('Очистить таблицу «' + label + '»?\n\nВсе ответы будут безвозвратно удалены из базы данных. Действие необратимо.')) return;
+        const original = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = 'Очистка…';
+        try {
+          const res = await fetch('/api/admin/clear/' + table, { method: 'POST' });
+          const data = await res.json();
+          if (res.ok) {
+            alert('Таблица «' + label + '» очищена. Удалено записей: ' + data.deleted + '.');
+          } else {
+            alert('Ошибка: ' + (data.error || ('код ' + res.status)));
+          }
+        } catch (e) {
+          alert('Ошибка сети: ' + e.message);
+        } finally {
+          btn.disabled = false;
+          btn.textContent = original;
+        }
+      });
+    });
   </script>
 </body>
 </html>

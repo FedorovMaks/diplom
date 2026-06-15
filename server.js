@@ -23,7 +23,12 @@ app.use((err, _req, res, _next) => {
   res.status(err.status || 500).json({ error: err.publicMessage || 'Внутренняя ошибка сервера' });
 });
 
-const port = Number(process.env.PORT) || 3000;
-app.listen(port, () => {
-  console.log(`Survey app listening on http://localhost:${port}`);
-});
+// Локальный запуск (node server.js). На Vercel модуль импортируется как функция.
+if (require.main === module) {
+  const port = Number(process.env.PORT) || 3000;
+  app.listen(port, () => {
+    console.log(`Survey app listening on http://localhost:${port}`);
+  });
+}
+
+module.exports = app;

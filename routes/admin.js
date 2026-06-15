@@ -248,6 +248,25 @@ router.get('/export/teacher.xlsx', requireAdmin, async (_req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// ---------- ОЧИСТКА ТАБЛИЦ ----------
+
+// Белый список: ключ из запроса -> реальное имя таблицы (защита от SQL-инъекций)
+const CLEARABLE_TABLES = {
+  general: 'general_student_survey',
+  pps: 'pps_evaluation',
+  teacher: 'teacher_survey',
+};
+
+router.post('/clear/:key', requireAdmin, async (req, res, next) => {
+  try {
+    const table = CLEARABLE_TABLES[req.params.key];
+    if (!table) return res.status(400).json({ error: 'Неизвестная таблица' });
+    if (!pool) return res.status(503).json({ error: 'БД не подключена' });
+    const result = await pool.query(`DELETE FROM ${table}`);
+    res.json({ ok: true, deleted: result.rowCount });
+  } catch (e) { next(e); }
+});
+
 // ---------- УПРАВЛЕНИЕ ПРЕПОДАВАТЕЛЯМИ ----------
 
 router.get('/teachers', requireAdmin, (_req, res) => {
