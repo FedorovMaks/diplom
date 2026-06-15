@@ -9,6 +9,9 @@
     "dev": "node --watch server.js",
     "init-db": "node scripts/init-db.js"
   },
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "dependencies": {
     "cookie-parser": "^1.4.7",
     "dotenv": "^16.4.5",
