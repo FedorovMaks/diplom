@@ -27,12 +27,19 @@
     .btn-del:hover { background:var(--danger); color:#fff; }
     .teacher-groups-list { display:flex; flex-wrap:wrap; gap:4px; max-width:400px; }
     .teacher-groups-list span { background:#f0f0f0; padding:2px 8px; border-radius:10px; font-size:12px; }
-    /* Группы преподавателя — компактно по специальностям */
-    .teacher-groups { display:flex; flex-direction:column; gap:5px; max-width:440px; max-height:140px; overflow-y:auto; }
-    .tg-row { display:flex; align-items:baseline; gap:8px; }
-    .tg-code { font-weight:700; font-size:12px; color:var(--text); min-width:26px; flex-shrink:0; }
-    .tg-chips { display:flex; flex-wrap:wrap; gap:4px; }
-    .tg-chips span { background:#f0f0f0; padding:2px 7px; border-radius:10px; font-size:12px; white-space:nowrap; }
+    /* Группы преподавателя — раскрывающийся список */
+    .groups-details { max-width:440px; }
+    .groups-details > summary {
+      cursor:pointer; user-select:none; display:inline-flex; align-items:center; gap:6px;
+      padding:3px 10px; border:1px solid var(--border); border-radius:14px;
+      font-size:12px; font-weight:600; color:var(--text-muted); background:#f7f7f7; list-style:none;
+    }
+    .groups-details > summary::-webkit-details-marker { display:none; }
+    .groups-details > summary::before { content:'▸'; font-size:10px; transition:transform .15s; }
+    .groups-details[open] > summary::before { transform:rotate(90deg); }
+    .groups-details > summary:hover { border-color:var(--accent); color:var(--text); }
+    .groups-details[open] > summary { margin-bottom:8px; }
+    .groups-details .teacher-groups-list { max-height:160px; overflow-y:auto; }
     .scroll-table { max-height:500px; overflow-y:auto; border:1px solid var(--border-light); border-radius:8px; }
     .export-item { display:flex; flex-direction:column; gap:8px; }
     .btn-clear { width:100%; padding:9px; font-size:13px; font-weight:600; border-radius:6px; }
@@ -203,42 +210,23 @@
     // === Teachers ===
     const teachersTbody = document.getElementById('teachersTbody');
 
-    // Сжимаем последовательные номера в диапазоны: [1,2,3,4,7] -> "1–4, 7"
-    function toRanges(nums) {
-      const arr = [...new Set(nums.map(Number))].filter(n => !isNaN(n)).sort((a, b) => a - b);
-      if (!arr.length) return '';
-      const out = [];
-      let start = arr[0], prev = arr[0];
-      for (let i = 1; i <= arr.length; i++) {
-        if (arr[i] === prev + 1) { prev = arr[i]; continue; }
-        out.push(start === prev ? `${start}` : `${start}–${prev}`);
-        start = prev = arr[i];
-      }
-      return out.join(', ');
+    function plural(n, one, few, many) {
+      const m10 = n % 10, m100 = n % 100;
+      if (m10 === 1 && m100 !== 11) return one;
+      if (m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20)) return few;
+      return many;
     }
 
-    // Компактный вывод групп: специальность -> курс -> диапазоны подгрупп
-    // Ю-9-1..Ю-9-4, Ю-11-1..Ю-11-3  ->  "Ю   9 кл.: 1–4   11 кл.: 1–3"
+    // Раскрывающийся список групп: по умолчанию свёрнут (виден только счётчик)
     function renderGroups(groups) {
       if (!groups || !groups.length) return '<span style="color:var(--text-muted)">—</span>';
-      const byCode = {};
-      for (const g of groups) {
-        const parts = String(g).split('-');
-        const code = parts[0];
-        const course = parts.length >= 3 ? parts[1] : '';
-        const num = parts.length >= 3 ? parts[2] : parts.slice(1).join('-');
-        byCode[code] = byCode[code] || {};
-        (byCode[code][course] = byCode[code][course] || []).push(num);
-      }
-      const rows = Object.entries(byCode).map(([code, courses]) => {
-        const chips = Object.entries(courses).map(([course, nums]) => {
-          const r = toRanges(nums);
-          const text = course ? `${course} кл.: ${r || nums.join(', ')}` : nums.join(', ');
-          return `<span>${text}</span>`;
-        }).join('');
-        return `<div class="tg-row"><span class="tg-code">${code}</span><div class="tg-chips">${chips}</div></div>`;
-      }).join('');
-      return '<div class="teacher-groups">' + rows + '</div>';
+      const n = groups.length;
+      const word = plural(n, 'группа', 'группы', 'групп');
+      const chips = groups.map(g => '<span>' + g + '</span>').join('');
+      return `<details class="groups-details">
+        <summary>${n}&nbsp;${word}</summary>
+        <div class="teacher-groups-list">${chips}</div>
+      </details>`;
     }
 
     async function loadTeachers() {
