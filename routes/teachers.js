@@ -1,6 +1,6 @@
 const express = require('express');
-const { GROUPS } = require('../data/groups');
 const pool = require('../db/pool');
+const { isValidGroup } = require('../db/groups');
 
 const router = express.Router();
 
@@ -8,7 +8,7 @@ const router = express.Router();
 router.get('/', async (req, res, next) => {
   try {
     const group = String(req.query.group || '').trim();
-    if (!GROUPS.includes(group)) {
+    if (!(await isValidGroup(group))) {
       return res.status(400).json({ error: 'Неизвестная группа' });
     }
     if (!pool) return res.status(503).json({ error: 'БД не подключена' });

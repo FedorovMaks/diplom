@@ -1,15 +1,8 @@
-const fs = require('fs');
-const path = require('path');
 const express = require('express');
 const pool = require('../db/pool');
-const { GROUPS } = require('../data/groups');
+const { isValidGroup } = require('../db/groups');
 
 const router = express.Router();
-
-const TEACHERS_PATH = path.join(__dirname, '..', 'data', 'teachers.json');
-function loadTeachers() {
-  return JSON.parse(fs.readFileSync(TEACHERS_PATH, 'utf8'));
-}
 
 const TEACHER_Q5_CODES = ['lit', 'tech', 'rooms', 'choice', 'schedule', 'copy'];
 
@@ -22,7 +15,7 @@ function intInRange(v, min, max) {
 router.post('/general', async (req, res, next) => {
   try {
     const { group, answers } = req.body || {};
-    if (!GROUPS.includes(group)) return res.status(400).json({ error: 'Неизвестная группа' });
+    if (!(await isValidGroup(group))) return res.status(400).json({ error: 'Неизвестная группа' });
     if (!answers || typeof answers !== 'object') return res.status(400).json({ error: 'Нет ответов' });
 
     const radio3 = ['q1', 'q2', 'q4', 'q5', 'q6', 'q7_1', 'q7_2', 'q7_3',
@@ -56,20 +49,24 @@ router.post('/general', async (req, res, next) => {
 
 // POST /api/survey/pps
 router.post('/pps', async (req, res, next) => {
+  let client;
+  try {
   const { group, evaluations } = req.body || {};
-  if (!GROUPS.includes(group)) return res.status(400).json({ error: 'Неизвестная группа' });
+  if (!(await isValidGroup(group))) return res.status(400).json({ error: 'Неизвестная группа' });
   if (!Array.isArray(evaluations) || evaluations.length === 0) {
     return res.status(400).json({ error: 'Нет оценок преподавателей' });
   }
 
-  const teachers = loadTeachers();
-  const byId = new Map(teachers.map((t) => [t.id, t]));
+  if (!pool) return res.json({ ok: true, demo: true, count: evaluations.length });
+
+  const { rows: teacherRows } = await pool.query('SELECT id, fio, groups FROM teachers');
+  const byId = new Map(teacherRows.map((t) => [t.id, t]));
 
   const rows = [];
   for (const ev of evaluations) {
     const t = byId.get(Number(ev.teacher_id));
     if (!t) return res.status(400).json({ error: `Неизвестный преподаватель: ${ev.teacher_id}` });
-    if (!t.groups.includes(group)) {
+    if (!Array.isArray(t.groups) || !t.groups.includes(group)) {
       return res.status(400).json({ error: `Преподаватель ${t.fio} не ведёт у группы ${group}` });
     }
     const scores = ev.scores || {};
@@ -82,9 +79,7 @@ router.post('/pps', async (req, res, next) => {
     rows.push([group, t.id, t.fio, ...c]);
   }
 
-  if (!pool) return res.json({ ok: true, demo: true, count: rows.length });
-
-  const client = await pool.connect();
+  client = await pool.connect();
   try {
     await client.query('BEGIN');
     for (const row of rows) {
@@ -105,6 +100,7 @@ router.post('/pps', async (req, res, next) => {
   } finally {
     client.release();
   }
+  } catch (e) { next(e); }
 });
 
 // POST /api/survey/teacher

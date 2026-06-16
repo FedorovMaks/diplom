@@ -5,6 +5,7 @@ const cookieParser = require('cookie-parser');
 
 const surveysRouter = require('./routes/surveys');
 const teachersRouter = require('./routes/teachers');
+const groupsRouter = require('./routes/groups');
 const adminRouter = require('./routes/admin');
 
 const app = express();
@@ -14,6 +15,7 @@ app.use(cookieParser());
 
 app.use('/api/survey', surveysRouter);
 app.use('/api/teachers', teachersRouter);
+app.use('/api/groups', groupsRouter);
 app.use('/api/admin', adminRouter);
 
 app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
