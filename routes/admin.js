@@ -5,16 +5,10 @@ const express = require('express');
 const ExcelJS = require('exceljs');
 const pool = require('../db/pool');
 
-const TEACHERS_PATH = path.join(__dirname, '..', 'data', 'teachers.json');
 const GROUPS_PATH = path.join(__dirname, '..', 'data', 'groups.js');
 const PUBLIC_GROUPS_PATH = path.join(__dirname, '..', 'public', 'js', 'groups.js');
 
-function loadTeachers() {
-  return JSON.parse(fs.readFileSync(TEACHERS_PATH, 'utf8'));
-}
-function saveTeachers(list) {
-  fs.writeFileSync(TEACHERS_PATH, JSON.stringify(list, null, 2), 'utf8');
-}
+// Преподаватели хранятся в БД (таблица teachers). Файл больше не используется.
 
 const router = express.Router();
 
@@ -269,49 +263,67 @@ router.post('/clear/:key', requireAdmin, async (req, res, next) => {
 
 // ---------- УПРАВЛЕНИЕ ПРЕПОДАВАТЕЛЯМИ ----------
 
-router.get('/teachers', requireAdmin, (_req, res) => {
-  res.json(loadTeachers());
+router.get('/teachers', requireAdmin, async (_req, res, next) => {
+  try {
+    if (!pool) return res.status(503).json({ error: 'БД не подключена' });
+    const { rows } = await pool.query(
+      'SELECT id, fio, subjects, groups FROM teachers ORDER BY id'
+    );
+    res.json(rows);
+  } catch (e) { next(e); }
 });
 
-router.post('/teachers', requireAdmin, (req, res) => {
-  const { fio, subjects, groups } = req.body || {};
-  if (!fio || typeof fio !== 'string' || !fio.trim()) {
-    return res.status(400).json({ error: 'ФИО обязательно' });
-  }
-  const list = loadTeachers();
-  const maxId = list.reduce((m, t) => Math.max(m, t.id), 0);
-  const teacher = {
-    id: maxId + 1,
-    fio: fio.trim(),
-    subjects: Array.isArray(subjects) ? subjects : [],
-    groups: Array.isArray(groups) ? groups : [],
-  };
-  list.push(teacher);
-  saveTeachers(list);
-  res.json(teacher);
+router.post('/teachers', requireAdmin, async (req, res, next) => {
+  try {
+    if (!pool) return res.status(503).json({ error: 'БД не подключена' });
+    const { fio, subjects, groups } = req.body || {};
+    if (!fio || typeof fio !== 'string' || !fio.trim()) {
+      return res.status(400).json({ error: 'ФИО обязательно' });
+    }
+    const { rows } = await pool.query(
+      `INSERT INTO teachers (fio, subjects, groups) VALUES ($1, $2, $3)
+       RETURNING id, fio, subjects, groups`,
+      [
+        fio.trim(),
+        JSON.stringify(Array.isArray(subjects) ? subjects : []),
+        JSON.stringify(Array.isArray(groups) ? groups : []),
+      ]
+    );
+    res.json(rows[0]);
+  } catch (e) { next(e); }
 });
 
-router.put('/teachers/:id', requireAdmin, (req, res) => {
-  const id = Number(req.params.id);
-  const list = loadTeachers();
-  const idx = list.findIndex(t => t.id === id);
-  if (idx === -1) return res.status(404).json({ error: 'Не найден' });
-  const { fio, subjects, groups } = req.body || {};
-  if (fio) list[idx].fio = String(fio).trim();
-  if (Array.isArray(subjects)) list[idx].subjects = subjects;
-  if (Array.isArray(groups)) list[idx].groups = groups;
-  saveTeachers(list);
-  res.json(list[idx]);
+router.put('/teachers/:id', requireAdmin, async (req, res, next) => {
+  try {
+    if (!pool) return res.status(503).json({ error: 'БД не подключена' });
+    const id = Number(req.params.id);
+    const { fio, subjects, groups } = req.body || {};
+    const sets = [];
+    const vals = [];
+    let i = 1;
+    if (fio) { sets.push(`fio = $${i++}`); vals.push(String(fio).trim()); }
+    if (Array.isArray(subjects)) { sets.push(`subjects = $${i++}`); vals.push(JSON.stringify(subjects)); }
+    if (Array.isArray(groups)) { sets.push(`groups = $${i++}`); vals.push(JSON.stringify(groups)); }
+    if (!sets.length) return res.status(400).json({ error: 'Нечего обновлять' });
+    vals.push(id);
+    const { rows } = await pool.query(
+      `UPDATE teachers SET ${sets.join(', ')} WHERE id = $${i}
+       RETURNING id, fio, subjects, groups`,
+      vals
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Не найден' });
+    res.json(rows[0]);
+  } catch (e) { next(e); }
 });
 
-router.delete('/teachers/:id', requireAdmin, (req, res) => {
-  const id = Number(req.params.id);
-  let list = loadTeachers();
-  const before = list.length;
-  list = list.filter(t => t.id !== id);
-  if (list.length === before) return res.status(404).json({ error: 'Не найден' });
-  saveTeachers(list);
-  res.json({ ok: true });
+router.delete('/teachers/:id', requireAdmin, async (req, res, next) => {
+  try {
+    if (!pool) return res.status(503).json({ error: 'БД не подключена' });
+    const id = Number(req.params.id);
+    const { rowCount } = await pool.query('DELETE FROM teachers WHERE id = $1', [id]);
+    if (!rowCount) return res.status(404).json({ error: 'Не найден' });
+    res.json({ ok: true });
+  } catch (e) { next(e); }
 });
 
 // ---------- УПРАВЛЕНИЕ ГРУППАМИ ----------
